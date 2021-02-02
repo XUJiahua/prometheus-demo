@@ -3,10 +3,14 @@ package card
 import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
+	"time"
 )
 
 type Resource struct {
+	HttpRequestsCounter    *prometheus.CounterVec
+	HttpLatenciesHistogram *prometheus.HistogramVec
 	Service
 }
 
@@ -58,13 +62,28 @@ type handlerFunc func(*Request) (*Response, error)
 
 func (card *Resource) middleware(handler handlerFunc) func(request *restful.Request, response *restful.Response) {
 	return func(request *restful.Request, response *restful.Response) {
+		var err error
+		start := time.Now()
+		// counter inc/ histogram observe
+		defer func() {
+			elapsed := float64(time.Since(start) / time.Millisecond)
+			if err != nil {
+				card.HttpRequestsCounter.WithLabelValues("500", "POST", request.Request.RequestURI).Inc()
+				card.HttpLatenciesHistogram.WithLabelValues("500", "POST", request.Request.RequestURI).Observe(elapsed)
+			} else {
+				card.HttpRequestsCounter.WithLabelValues("200", "POST", request.Request.RequestURI).Inc()
+				card.HttpLatenciesHistogram.WithLabelValues("200", "POST", request.Request.RequestURI).Observe(elapsed)
+			}
+		}()
+
 		cardRequest := new(Request)
-		err := request.ReadEntity(&cardRequest)
+		err = request.ReadEntity(&cardRequest)
 		if err != nil {
 			_ = response.WriteError(http.StatusInternalServerError, err)
 			return
 		}
-		cardResponse, err := handler(cardRequest)
+		var cardResponse *Response
+		cardResponse, err = handler(cardRequest)
 		if err != nil {
 			_ = response.WriteError(http.StatusInternalServerError, err)
 			return

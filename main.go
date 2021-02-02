@@ -11,6 +11,29 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+// 1. define metrics
+var (
+	httpRequestsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "How many HTTP requests processed, partitioned by status code and HTTP method and path.",
+	}, []string{
+		"code",
+		"method",
+		"path",
+	})
+	httpLatenciesHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "http_requests_latency",
+		Help:    "How long (ms) HTTP requests processed, partitioned by status code and HTTP method and path.",
+		Buckets: prometheus.LinearBuckets(100, 50, 10),
+	}, []string{
+		"code",
+		"method",
+		"path",
+	})
 )
 
 var port = "8080"
@@ -19,17 +42,34 @@ func init() {
 	if portEnv := os.Getenv("PORT"); portEnv != "" {
 		port = portEnv
 	}
+
+	// 2. Metrics have to be registered to be exposed:
+	prometheus.MustRegister(httpRequestsCounter)
+	prometheus.MustRegister(httpLatenciesHistogram)
 }
 
 func main() {
 	cardResource := card.Resource{
 		Service: card.NewService(cybersource.NewMock()),
+		// 4. use it
+		// inject counter
+		HttpRequestsCounter: httpRequestsCounter,
+		// inject histogram
+		HttpLatenciesHistogram: httpLatenciesHistogram,
 	}
 	restful.DefaultContainer.Add(cardResource.WebService())
 
 	setupSwagger()
+	setupMetrics()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+}
+
+// 3. expose url
+func setupMetrics() {
+	// The Handler function provides a default handler to expose metrics
+	// via an HTTP server. "/metrics" is the usual endpoint for that.
+	http.Handle("/metrics", promhttp.Handler())
 }
 
 func setupSwagger() {
