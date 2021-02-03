@@ -19,3 +19,5 @@ test_capture_01:
 	curl -X POST "$(APP_URL)/card/capture" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"amount\": -1,  \"auth_id\": \"string\",  \"capture_id\": \"string\",  \"card_no\": \"string\"}"
 test_refund_01:
 	curl -X POST "$(APP_URL)/card/refund" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"amount\": -1,  \"auth_id\": \"string\",  \"capture_id\": \"string\",  \"card_no\": \"string\"}"
+load:
+	docker-compose up

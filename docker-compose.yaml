@@ -1,0 +1,54 @@
+version: "3"
+services:
+  demo:
+    build: .
+    ports:
+      - "8080:8080"
+
+  test_auth_0002:
+    build: ./testclient
+    command: /bin/sh -c "while sleep 0.1; do APP_URL=http://demo:8080 make test_auth_0002; done"
+    volumes:
+      - ./Makefile:/tmp/Makefile
+    depends_on:
+      - demo
+
+  test_auth_01:
+    build: ./testclient
+    command: /bin/sh -c "while sleep 1; do APP_URL=http://demo:8080 make test_auth_01; done"
+    volumes:
+      - ./Makefile:/tmp/Makefile
+    depends_on:
+      - demo
+
+  test_capture_0002:
+    build: ./testclient
+    command: /bin/sh -c "while sleep 0.15; do APP_URL=http://demo:8080 make test_capture_0002; done"
+    volumes:
+      - ./Makefile:/tmp/Makefile
+    depends_on:
+      - demo
+
+  test_capture_01:
+    build: ./testclient
+    command: /bin/sh -c "while sleep 1.5; do APP_URL=http://demo:8080 make test_capture_01; done"
+    volumes:
+      - ./Makefile:/tmp/Makefile
+    depends_on:
+      - demo
+
+  test_refund_0002:
+    build: ./testclient
+    command: /bin/sh -c "while sleep 0.2; do APP_URL=http://demo:8080 make test_refund_0002; done"
+    volumes:
+      - ./Makefile:/tmp/Makefile
+    depends_on:
+      - demo
+
+  test_refund_01:
+    build: ./testclient
+    command: /bin/sh -c "while sleep 2; do APP_URL=http://demo:8080 make test_refund_01; done"
+    volumes:
+      - ./Makefile:/tmp/Makefile
+    depends_on:
+      - demo
