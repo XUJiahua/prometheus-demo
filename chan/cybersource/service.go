@@ -1,5 +1,5 @@
 package cybersource
 
 type Service interface {
-	Call() error
+	Call(request *Request) error
 }

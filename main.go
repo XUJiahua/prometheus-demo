@@ -17,22 +17,43 @@ import (
 
 // 1. define metrics
 var (
-	httpRequestsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "http_requests_total",
-		Help: "How many HTTP requests processed, partitioned by status code and HTTP method and path.",
+	// api level
+	//httpRequestsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+	//	Name: "cil_http_requests_total",
+	//	Help: "How many HTTP requests processed, partitioned by status code and HTTP method and path.",
+	//}, []string{
+	//	"code",
+	//	"method",
+	//	"path",
+	//})
+	// histogram has xxx_count metrics (cover the scope of counter)
+	httpLatenciesHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "cil_http_requests_latency",
+		Help:    "How long (ms) HTTP requests processed, partitioned by status code and HTTP method and path.",
+		Buckets: prometheus.LinearBuckets(100, 100, 5),
 	}, []string{
 		"code",
 		"method",
 		"path",
 	})
-	httpLatenciesHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "http_requests_latency",
-		Help:    "How long (ms) HTTP requests processed, partitioned by status code and HTTP method and path.",
-		Buckets: prometheus.LinearBuckets(100, 50, 10),
+
+	// channel api level
+	pspLatenciesHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "cil_psp_requests_latency",
+		Help:    "How long (ms) psp requests processed, partitioned by answer code and txn method.",
+		Buckets: prometheus.LinearBuckets(100, 100, 5),
 	}, []string{
 		"code",
 		"method",
-		"path",
+	})
+
+	// answer code level
+	internalOpCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "cil_internal_ops_total",
+		Help: "How many card op processed, partitioned by response code and op.",
+	}, []string{
+		"code",
+		"op",
 	})
 )
 
@@ -44,18 +65,29 @@ func init() {
 	}
 
 	// 2. Metrics have to be registered to be exposed:
-	prometheus.MustRegister(httpRequestsCounter)
+	//prometheus.MustRegister(httpRequestsCounter)
 	prometheus.MustRegister(httpLatenciesHistogram)
+	prometheus.MustRegister(pspLatenciesHistogram)
+	prometheus.MustRegister(internalOpCounter)
 }
 
 func main() {
 	cardResource := card.Resource{
-		Service: card.NewService(cybersource.NewMock()),
-		// 4. use it
+		// 4. use it at http level
 		// inject counter
-		HttpRequestsCounter: httpRequestsCounter,
+		//HttpRequestsCounter: httpRequestsCounter,
 		// inject histogram
 		HttpLatenciesHistogram: httpLatenciesHistogram,
+
+		Service: (&card.ServiceImpl{
+			// 4. use it at internal api level
+			OpCounter: internalOpCounter,
+
+			ChannelService: cybersource.MockService{
+				// 4. use it at 3rd party level
+				// inject histogram
+				LatenciesHistogram: pspLatenciesHistogram,
+			}}).RegisterMiddleware(),
 	}
 	restful.DefaultContainer.Add(cardResource.WebService())
 

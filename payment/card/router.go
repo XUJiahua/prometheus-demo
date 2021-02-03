@@ -9,9 +9,9 @@ import (
 )
 
 type Resource struct {
-	HttpRequestsCounter    *prometheus.CounterVec
+	//HttpRequestsCounter    *prometheus.CounterVec
 	HttpLatenciesHistogram *prometheus.HistogramVec
-	Service
+	Service                Service
 }
 
 func (card Resource) WebService() *restful.WebService {
@@ -24,7 +24,7 @@ func (card Resource) WebService() *restful.WebService {
 	tags := []string{"card"}
 
 	ws.Route(ws.POST("/auth").
-		To(card.middleware(card.Auth)).
+		To(card.middleware(card.Service.WrapMiddlewares(card.Service.Auth))).
 		//To(card.auth).
 		// docs
 		Doc("card auth").
@@ -35,7 +35,7 @@ func (card Resource) WebService() *restful.WebService {
 		Returns(500, "server error", nil))
 
 	ws.Route(ws.POST("/capture").
-		To(card.middleware(card.Capture)).
+		To(card.middleware(card.Service.WrapMiddlewares(card.Service.Capture))).
 		//To(card.capture).
 		// docs
 		Doc("card capture based on previous auth").
@@ -46,7 +46,7 @@ func (card Resource) WebService() *restful.WebService {
 		Returns(500, "server error", nil))
 
 	ws.Route(ws.POST("/refund").
-		To(card.middleware(card.Refund)).
+		To(card.middleware(card.Service.WrapMiddlewares(card.Service.Refund))).
 		//To(card.refund).
 		// docs
 		Doc("card refund based on previous capture").
@@ -58,8 +58,6 @@ func (card Resource) WebService() *restful.WebService {
 	return ws
 }
 
-type handlerFunc func(*Request) (*Response, error)
-
 func (card *Resource) middleware(handler handlerFunc) func(request *restful.Request, response *restful.Response) {
 	return func(request *restful.Request, response *restful.Response) {
 		var err error
@@ -68,10 +66,10 @@ func (card *Resource) middleware(handler handlerFunc) func(request *restful.Requ
 		defer func() {
 			elapsed := float64(time.Since(start) / time.Millisecond)
 			if err != nil {
-				card.HttpRequestsCounter.WithLabelValues("500", "POST", request.Request.RequestURI).Inc()
+				//card.HttpRequestsCounter.WithLabelValues("500", "POST", request.Request.RequestURI).Inc()
 				card.HttpLatenciesHistogram.WithLabelValues("500", "POST", request.Request.RequestURI).Observe(elapsed)
 			} else {
-				card.HttpRequestsCounter.WithLabelValues("200", "POST", request.Request.RequestURI).Inc()
+				//card.HttpRequestsCounter.WithLabelValues("200", "POST", request.Request.RequestURI).Inc()
 				card.HttpLatenciesHistogram.WithLabelValues("200", "POST", request.Request.RequestURI).Observe(elapsed)
 			}
 		}()
