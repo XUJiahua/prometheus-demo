@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: testcapture01
+spec:
+  template:
+    spec:
+      containers:
+        - name: testcapture01
+          image: johnxu1989/prometheus-demo-load:latest
+          command: [ "/bin/sh", "-c", "while sleep 1.5; do APP_URL=http://prometheus-demo:8080 make test_capture_01; done" ]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /tmp
+      volumes:
+        - name: config-volume
+          configMap:
+            name: makefile
+            items:
+              - key: Makefile
+                path: Makefile
+      restartPolicy: Never
+

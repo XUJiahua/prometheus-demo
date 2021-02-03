@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: testrefund01
+spec:
+  template:
+    spec:
+      containers:
+        - name: testrefund01
+          image: johnxu1989/prometheus-demo-load:latest
+          command: [ "/bin/sh", "-c", "while sleep 2; do APP_URL=http://prometheus-demo:8080 make test_refund_01; done" ]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /tmp
+      volumes:
+        - name: config-volume
+          configMap:
+            name: makefile
+            items:
+              - key: Makefile
+                path: Makefile
+      restartPolicy: Never
+

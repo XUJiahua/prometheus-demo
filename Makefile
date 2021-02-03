@@ -6,6 +6,8 @@ fmt:
 	go fmt ./...
 build:
 	docker build -t johnxu1989/prometheus-demo .
+push:build
+	docker push johnxu1989/prometheus-demo
 test: test_auth_01 test_capture_01 test_refund_01 test_auth_0002 test_capture_0002 test_refund_0002
 test_auth_0002:
 	curl -X POST "$(APP_URL)/card/auth" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"amount\": 0,  \"auth_id\": \"string\",  \"capture_id\": \"string\",  \"card_no\": \"string\"}"
