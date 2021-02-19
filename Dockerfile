@@ -7,6 +7,6 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=0 /app/app .
-COPY --from=0 /app/swagger-ui .
+COPY --from=0 /app/swagger-ui ./swagger-ui
 EXPOSE 8080
 CMD ["./app"]

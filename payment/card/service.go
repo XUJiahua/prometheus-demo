@@ -33,15 +33,10 @@ func (s *ServiceImpl) RegisterMiddleware() Service {
 }
 
 func (s ServiceImpl) WrapMiddlewares(handler handlerFunc) handlerFunc {
-	return func(request *Request) (*Response, error) {
-		// wrap middleware
-		for _, middleware := range s.middlewares {
-			handler = middleware(handler)
-		}
-
-		// call it
-		return handler(request)
+	for _, middleware := range s.middlewares {
+		handler = middleware(handler)
 	}
+	return handler
 }
 
 func (s ServiceImpl) internalIDGenMiddleware(handler handlerFunc) handlerFunc {
